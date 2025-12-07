@@ -113,89 +113,91 @@
   </style>
 </head>
 <body>
-  <div class="shell">
-    <div class="card">
-      <a href="index.html" class="back-link">⬅ Back to Fails.com</a>
-      <h1>Submit your fail</h1>
-      <p class="sub">
-        Upload a video (MP4) or image meme (PNG/JPG). If it’s good, it goes into the global fail pool.
+<div class="shell">
+  <div class="card">
+    <a href="index.html" class="back-link">⬅ Back to Fails.com</a>
+    <h1>Submit your fail</h1>
+    <p class="sub">
+      Upload a video (MP4) or image meme (PNG/JPG). If it’s good, it goes into the global fail pool.
+    </p>
+
+    <form id="submitForm">
+      <label for="title">Title / short description</label>
+      <input id="title" name="title" type="text" maxlength="120"
+             placeholder="Guy discovers gravity the hard way" />
+
+      <label for="file">Your fail (video or image)</label>
+      <input id="file" name="file" type="file"
+             accept="video/mp4,video/*,image/png,image/jpeg,image/webp" required />
+
+      <p class="help">
+        Max size ~200MB. By uploading, you confirm you have the right to share this content.
       </p>
 
-      <form id="submitForm">
-        <label for="title">Title / short description</label>
-        <input id="title" name="title" type="text" maxlength="120"
-               placeholder="Guy vs. staircase" />
+      <button type="submit" id="submitBtn">
+        🚀 Submit fail
+      </button>
 
-        <label for="file">Your fail (video or image)</label>
-        <input id="file" name="file" type="file"
-               accept="video/mp4,video/*,image/png,image/jpeg,image/webp" required />
-
-        <p class="help">
-          Max size ~200MB. By uploading, you confirm you have the right to share this content.
-        </p>
-
-        <button type="submit" id="submitBtn">
-          🚀 Submit fail
-        </button>
-
-        <div id="status" class="status"></div>
-      </form>
-    </div>
+      <div id="status" class="status"></div>
+    </form>
   </div>
+</div>
 
-  <script>
-    const API_BASE = "https://inidan-finder-production.up.railway.app";
-    const form = document.getElementById("submitForm");
-    const statusEl = document.getElementById("status");
-    const btn = document.getElementById("submitBtn");
+<script>
+  const API_BASE = "https://inidan-finder-production.up.railway.app";
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      statusEl.textContent = "";
-      statusEl.className = "status";
+  const form = document.getElementById("submitForm");
+  const statusEl = document.getElementById("status");
+  const btn = document.getElementById("submitBtn");
 
-      const fileInput = document.getElementById("file");
-      const titleInput = document.getElementById("title");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusEl.textContent = "";
+    statusEl.className = "status";
 
-      if (!fileInput.files.length) {
-        statusEl.textContent = "Please choose a file.";
-        statusEl.classList.add("err");
-        return;
+    const fileInput = document.getElementById("file");
+    const titleInput = document.getElementById("title");
+
+    if (!fileInput.files.length) {
+      statusEl.textContent = "Please choose a file.";
+      statusEl.classList.add("err");
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", titleInput.value.trim());
+
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/upload`, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!res.ok) {
+        throw new Error("Upload failed");
       }
 
-      const file = fileInput.files[0];
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("title", titleInput.value.trim());
+      const data = await res.json();
+      console.log("Uploaded:", data);
 
-      btn.disabled = true;
-
-      try {
-        const res = await fetch(`${API_BASE}/api/upload`, {
-          method: "POST",
-          body: formData
-        });
-
-        if (!res.ok) {
-          throw new Error("Upload failed");
-        }
-
-        const data = await res.json();
-        console.log("Uploaded:", data);
-
-        statusEl.textContent = "Fail uploaded! It’s now in the rotation 🎉";
-        statusEl.classList.add("ok");
-        form.reset();
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "Something went wrong. Try again.";
-        statusEl.classList.add("err");
-      } finally {
-        btn.disabled = false;
-      }
-    });
-  </script>
+      statusEl.textContent = "Fail uploaded! It’s now in the rotation 🎉";
+      statusEl.classList.add("ok");
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = "Something went wrong. Try again.";
+      statusEl.classList.add("err");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
 </body>
 </html>
+
 
 
