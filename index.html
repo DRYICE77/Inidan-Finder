@@ -25,10 +25,9 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
         "Inter", sans-serif;
 
-      /* Indian flag background – change filename if needed */
       background:
         linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)),
-        url("india-flag.jpg");
+        url("india-flag.png");  /* make sure this matches your filename */
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
@@ -132,7 +131,6 @@
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.9);
     }
 
-    /* NEW: upload button style */
     .secondary-btn {
       display: inline-flex;
       align-items: center;
@@ -282,13 +280,12 @@
           <span>💥</span>
         </button>
 
-        <!-- NEW: upload button -->
         <a href="submit.html" class="secondary-btn">
           ⬆️ Upload your fail
         </a>
 
         <footer>
-          Upload a fail above to help power the vault.
+          Upload a fail to help power the vault. New uploads drop straight into the pool.
         </footer>
       </div>
 
@@ -314,13 +311,7 @@
 </div>
 
 <script>
-  /**
-   * Still using videos.json for now:
-   * [
-   *   { "mediaType": "video", "src": "videos/india1.mp4", "title": "..." },
-   *   { "mediaType": "image", "src": "images/meme1.jpg", "title": "..." }
-   * ]
-   */
+  const API_BASE = "https://inidan-finder-production.up.railway.app";
 
   let MEDIA_ITEMS = [];
   let lastIndex = -1;
@@ -336,38 +327,33 @@
 
   async function loadMedia() {
     try {
-      const res = await fetch("videos.json", {
+      const res = await fetch(`${API_BASE}/api/media`, {
         headers: { "Cache-Control": "no-cache" }
       });
-
       if (!res.ok) {
-        console.error("videos.json not found or failed to load", res.status);
+        console.error("Failed to load media:", res.status);
         return;
       }
-
       const data = await res.json();
       if (!Array.isArray(data)) {
-        console.error("videos.json is not an array");
+        console.error("Media response is not an array");
         return;
       }
-
       MEDIA_ITEMS = data;
       mediaLoaded = true;
       videoTotalEl.textContent = MEDIA_ITEMS.length;
     } catch (err) {
-      console.error("Error loading videos.json:", err);
+      console.error("Error fetching media:", err);
     }
   }
 
   function getRandomIndex() {
     if (MEDIA_ITEMS.length === 0) return -1;
     if (MEDIA_ITEMS.length === 1) return 0;
-
     let i;
     do {
       i = Math.floor(Math.random() * MEDIA_ITEMS.length);
     } while (i === lastIndex);
-
     return i;
   }
 
@@ -380,34 +366,31 @@
   function renderMedia(item) {
     clearPlaceholder();
     mediaShell.innerHTML = "";
-
     const mediaType = (item.mediaType || "video").toLowerCase();
+    const src = `${API_BASE}${item.src}`; // item.src is like /uploads/...
 
-    if (mediaType === "image" || mediaType === "photo" || mediaType === "img") {
+    if (mediaType === "image") {
       const img = document.createElement("img");
-      img.src = item.src;
+      img.src = src;
       img.alt = item.title || "Fail meme";
       mediaShell.appendChild(img);
     } else {
       const vid = document.createElement("video");
-      vid.src = item.src;
+      vid.src = src;
       vid.controls = true;
       vid.autoplay = true;
       vid.playsInline = true;
-      vid.style.width = "100%";
-      vid.style.height = "100%";
       mediaShell.appendChild(vid);
     }
   }
 
   function showToast(message) {
-    if (!toastEl) return;
     toastEl.textContent = message;
     toastEl.classList.add("visible");
     clearTimeout(showToast._timeout);
     showToast._timeout = setTimeout(() => {
       toastEl.classList.remove("visible");
-    }, 1800);
+    }, 1500);
   }
 
   function handleShowFail() {
@@ -415,9 +398,8 @@
       alert("Still loading fails… try again in a second.");
       return;
     }
-
     if (!Array.isArray(MEDIA_ITEMS) || MEDIA_ITEMS.length === 0) {
-      alert("No items found in videos.json.\nAdd some videos/images and redeploy.");
+      alert("No fails yet. Upload one on the submit page!");
       return;
     }
 
@@ -427,7 +409,6 @@
 
     const item = MEDIA_ITEMS[index];
     renderMedia(item);
-
     videoTitleEl.textContent = item.title || "Fail";
     videoIndexEl.textContent = index + 1;
     showToast("⚡ New fail loaded");
@@ -436,8 +417,10 @@
   showFailBtn.addEventListener("click", handleShowFail);
   document.addEventListener("DOMContentLoaded", loadMedia);
 </script>
+
 </body>
 </html>
+
 
 
 
