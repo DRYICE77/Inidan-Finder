@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Submit a Fail – Fails.com</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #020617;
+      --card: #0b1120;
+      --accent: #f97316;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --radius: 1.2rem;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.7)),
+        url("india-flag.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .shell {
+      width: 100%;
+      max-width: 520px;
+    }
+    .card {
+      background: rgba(11,17,32,0.96);
+      border-radius: var(--radius);
+      padding: 24px 20px 20px;
+      border: 1px solid rgba(148,163,184,0.4);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 36px rgba(0,0,0,0.6);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+    .sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    label {
+      font-size: 0.8rem;
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+    }
+    input[type="text"],
+    input[type="url"],
+    textarea,
+    select {
+      width: 100%;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.9);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(249,115,22,0.4);
+    }
+    .help {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+      border-radius: 999px;
+      border: none;
+      padding: 11px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      color: #020617;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 0.78rem;
+    }
+    .status.ok { color: #4ade80; }
+    .status.err { color: #f97373; }
+    .field-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .field-row > div { flex: 1; }
+    .warning {
+      margin-top: 12px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 10px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <a href="index.html" class="back-link">⬅ Back to Fails.com</a>
+      <h1>Submit your fail</h1>
+      <p class="sub">
+        Got an insane clip or meme? Send it in. If the mods approve, it may end up on the main button.
+      </p>
+
+      <form id="submitForm">
+        <label for="mediaType">What are you sending?</label>
+        <select id="mediaType" name="mediaType" required>
+          <option value="video">Video (MP4)</option>
+          <option value="image">Image (JPG / PNG)</option>
+        </select>
+
+        <label for="title">Title / short description</label>
+        <input id="title" name="title" type="text" maxlength="120" required
+               placeholder="Guy discovers gravity the hard way" />
+
+        <label for="src">Link to your file</label>
+        <input id="src" name="src" type="url" required
+               placeholder="https://example.com/your-fail.mp4" />
+        <p class="help">
+          Tip: host your file on something like Google Drive, Dropbox, or a direct file host and paste the share link.
+        </p>
+
+        <div class="field-row">
+          <div>
+            <label for="submittedBy">Name or handle (optional)</label>
+            <input id="submittedBy" name="submittedBy" type="text"
+                   placeholder="@yourhandle" />
+          </div>
+          <div>
+            <label for="wallet">Wallet (optional)</label>
+            <input id="wallet" name="wallet" type="text"
+                   placeholder="Your FAIL wallet" />
+          </div>
+        </div>
+
+        <label for="notes">Anything we should know? (optional)</label>
+        <textarea id="notes" name="notes" rows="3"
+                  placeholder="This was at my cousin's wedding, table 4 💀"></textarea>
+
+        <button type="submit" id="submitBtn">
+          <span>🚀 Submit fail</span>
+        </button>
+        <div id="status" class="status"></div>
+
+        <p class="warning">
+          By submitting, you confirm you have the right to share this content and allow Fails.com to display it.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("submitForm");
+    const statusEl = document.getElementById("status");
+    const btn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      btn.disabled = true;
+
+      const payload = {
+        mediaType: form.mediaType.value,
+        title: form.title.value.trim(),
+        src: form.src.value.trim(),
+        submittedBy: form.submittedBy.value.trim() || null,
+        wallet: form.wallet.value.trim() || null,
+        notes: form.notes.value.trim() || null
+      };
+
+      try {
+        // TODO: replace with your real API endpoint
+        const res = await fetch("/api/submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          throw new Error("Server error: " + res.status);
+        }
+
+        statusEl.textContent = "Thanks! Your fail was submitted for review.";
+        statusEl.classList.add("ok");
+        form.reset();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Something went wrong sending your fail. Try again later.";
+        statusEl.classList.add("err");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

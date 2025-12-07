@@ -1,0 +1,38 @@
+[
+  {
+    "type": "video",
+    "src": "videos/india.mp4",
+    "title": "Indian Fail #1"
+  },
+  {
+    "type": "video",
+    "src": "videos/india1.mp4",
+    "title": "Indian Fail #2"
+  },
+  {
+    "type": "video",
+    "src": "videos/india2.mp4",
+    "title": "Indian Fail #3"
+  },
+  {
+    "type": "video",
+    "src": "videos/india3.mp4",
+    "title": "Indian Fail #4"
+  },
+  {
+    "type": "video",
+    "src": "videos/india4.mp4",
+    "title": "Indian Fail #5"
+  },
+  {
+    "type": "video",
+    "src": "videos/india5.mp4",
+    "title": "Indian Fail #6"
+  },
+
+   {
+    "type": "image",
+    "src": "image/india2.png",
+    "title": "Indian Fail #7"
+  }
+]
