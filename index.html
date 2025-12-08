@@ -25,7 +25,6 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
         "Inter", sans-serif;
 
-      /* Indian flag background */
       background:
         linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)),
         url("india-flag.png");
@@ -216,10 +215,27 @@
       gap: 8px;
     }
 
+    .video-meta-left {
+      min-width: 0;
+    }
+
     .video-title {
+      font-size: 0.86rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .video-author {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .video-meta-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .count-pill {
@@ -227,6 +243,20 @@
       border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.4);
       font-size: 0.78rem;
+    }
+
+    .upvote-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: var(--text);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .upvote-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
     }
 
     .toast {
@@ -281,7 +311,6 @@
           <span>💥</span>
         </button>
 
-        <!-- Upload button -->
         <a href="submit.html" class="secondary-btn">
           ⬆️ Upload your fail
         </a>
@@ -300,10 +329,16 @@
           </div>
         </div>
         <div class="video-meta">
-          <span class="video-title" id="videoTitle">No fail loaded yet</span>
-          <span class="count-pill">
-            <span id="videoIndex">0</span>/<span id="videoTotal">0</span>
-          </span>
+          <div class="video-meta-left">
+            <div class="video-title" id="videoTitle">No fail loaded yet</div>
+            <div class="video-author" id="videoAuthor"></div>
+          </div>
+          <div class="video-meta-right">
+            <button class="upvote-btn" id="upvoteBtn" disabled>⬆️ Upvote · 0</button>
+            <span class="count-pill">
+              <span id="videoIndex">0</span>/<span id="videoTotal">0</span>
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -318,21 +353,24 @@
   let MEDIA_ITEMS = [];
   let lastIndex = -1;
   let mediaLoaded = false;
+  let currentItem = null;
 
   const showFailBtn = document.getElementById("showFailBtn");
   const mediaShell = document.getElementById("mediaShell");
   const placeholder = document.getElementById("placeholder");
   const videoTitleEl = document.getElementById("videoTitle");
+  const videoAuthorEl = document.getElementById("videoAuthor");
   const videoIndexEl = document.getElementById("videoIndex");
   const videoTotalEl = document.getElementById("videoTotal");
   const toastEl = document.getElementById("toast");
+  const upvoteBtn = document.getElementById("upvoteBtn");
 
   async function loadMedia() {
     try {
       const res = await fetch(`${API_BASE}/api/media`, {
         headers: { "Cache-Control": "no-cache" }
       });
-    if (!res.ok) {
+      if (!res.ok) {
         console.error("Failed to load media:", res.status);
         return;
       }
@@ -341,7 +379,12 @@
         console.error("Media response is not an array");
         return;
       }
-      MEDIA_ITEMS = data;
+      // ensure votes property exists
+      MEDIA_ITEMS = data.map(item => ({
+        votes: 0,
+        ...item,
+        votes: item.votes || 0
+      }));
       mediaLoaded = true;
       videoTotalEl.textContent = MEDIA_ITEMS.length;
     } catch (err) {
@@ -369,7 +412,7 @@
     clearPlaceholder();
     mediaShell.innerHTML = "";
     const mediaType = (item.mediaType || "video").toLowerCase();
-    const src = `${API_BASE}${item.src}`; // e.g. /uploads/videos/abc.mp4
+    const src = `${API_BASE}${item.src}`;
 
     if (mediaType === "image") {
       const img = document.createElement("img");
@@ -395,6 +438,41 @@
     }, 1500);
   }
 
+  function hasUpvoted(id) {
+    const raw = localStorage.getItem("fails_upvoted") || "[]";
+    try {
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) && arr.includes(id);
+    } catch {
+      return false;
+    }
+  }
+
+  function markUpvoted(id) {
+    const raw = localStorage.getItem("fails_upvoted") || "[]";
+    let arr;
+    try {
+      arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) arr = [];
+    } catch {
+      arr = [];
+    }
+    if (!arr.includes(id)) arr.push(id);
+    localStorage.setItem("fails_upvoted", JSON.stringify(arr));
+  }
+
+  function updateUpvoteButton() {
+    if (!currentItem || !currentItem.id) {
+      upvoteBtn.disabled = true;
+      upvoteBtn.textContent = "⬆️ Upvote · 0";
+      return;
+    }
+    const votes = currentItem.votes || 0;
+    const already = hasUpvoted(currentItem.id);
+    upvoteBtn.disabled = already;
+    upvoteBtn.textContent = (already ? "✅ Upvoted · " : "⬆️ Upvote · ") + votes;
+  }
+
   function handleShowFail() {
     if (!mediaLoaded) {
       alert("Still loading fails… try again in a second.");
@@ -410,15 +488,60 @@
     lastIndex = index;
 
     const item = MEDIA_ITEMS[index];
+    currentItem = item;
+
     renderMedia(item);
     videoTitleEl.textContent = item.title || "Fail";
+
+    if (item.author && item.author.trim() !== "") {
+      videoAuthorEl.textContent = `by ${item.author.trim()}`;
+    } else {
+      videoAuthorEl.textContent = "";
+    }
+
     videoIndexEl.textContent = index + 1;
+    updateUpvoteButton();
     showToast("⚡ New fail loaded");
   }
 
+  async function handleUpvote() {
+    if (!currentItem || !currentItem.id) return;
+    if (hasUpvoted(currentItem.id)) {
+      showToast("You already upvoted this fail");
+      updateUpvoteButton();
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/media/${currentItem.id}/upvote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      if (!res.ok) {
+        console.error("Upvote failed", res.status);
+        showToast("Upvote failed");
+        return;
+      }
+      const data = await res.json();
+      currentItem.votes = data.votes ?? currentItem.votes;
+      // update in MEDIA_ITEMS too
+      const idx = MEDIA_ITEMS.findIndex(m => m.id === currentItem.id);
+      if (idx !== -1) MEDIA_ITEMS[idx].votes = currentItem.votes;
+      markUpvoted(currentItem.id);
+      updateUpvoteButton();
+      showToast("⬆️ Upvoted!");
+    } catch (err) {
+      console.error("Error upvoting", err);
+      showToast("Upvote failed");
+    }
+  }
+
   showFailBtn.addEventListener("click", handleShowFail);
+  upvoteBtn.addEventListener("click", handleUpvote);
   document.addEventListener("DOMContentLoaded", loadMedia);
 </script>
 
 </body>
 </html>
+
