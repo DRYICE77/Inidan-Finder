@@ -100,6 +100,34 @@ function requireXConfig() {
   }
 }
 
+async function ensureXToken(req) {
+  const token = req.session.x_access_token;
+  if (!token) {
+    const err = new Error("Not logged in to X/Twitter. Hit /api/x/connect first.");
+    err.status = 401;
+    throw err;
+  }
+  return token;
+}
+
+/**
+ * --------- NEW: Convenience connect route ----------
+ * Frontend button can just hit /api/x/connect
+ */
+app.get("/api/x/connect", (req, res) => {
+  return res.redirect("/api/twitter/login");
+});
+
+/**
+ * --------- NEW: Status route for UI ----------
+ * Returns: { connected: boolean, username?: string }
+ */
+app.get("/api/x/status", (req, res) => {
+  const connected = Boolean(req.session?.x_access_token);
+  const username = req.session?.x_username || null;
+  res.json({ connected, username });
+});
+
 // Start login: redirects user to X/Twitter authorize URL
 app.get("/api/twitter/login", (req, res) => {
   try {
@@ -122,7 +150,6 @@ app.get("/api/twitter/login", (req, res) => {
       `&code_challenge=${encodeURIComponent(codeChallenge)}` +
       `&code_challenge_method=S256`;
 
-    // Redirect (best UX). If you prefer JSON, change to res.json({url: authorizeUrl})
     return res.redirect(authorizeUrl);
   } catch (e) {
     return res.status(e.status || 400).json({ ok: false, error: e.message });
@@ -176,21 +203,31 @@ app.get("/api/twitter/callback", async (req, res) => {
     delete req.session.x_oauth_state;
     delete req.session.x_code_verifier;
 
-    return res.redirect(TWITTER_SUCCESS_REDIRECT);
+    /**
+     * --------- NEW: Fetch username and store it ----------
+     */
+    try {
+      const meRes = await fetch("https://api.twitter.com/2/users/me", {
+        headers: { Authorization: `Bearer ${req.session.x_access_token}` },
+      });
+      const meJson = await meRes.json();
+      if (meRes.ok && meJson?.data?.username) {
+        req.session.x_username = meJson.data.username;
+        req.session.x_user_id = meJson.data.id;
+      } else {
+        // Not fatal — tokens are still stored
+        req.session.x_username = null;
+      }
+    } catch (e) {
+      req.session.x_username = null;
+    }
+
+    // Make sure session persists before redirect (important in some hosting setups)
+    return req.session.save(() => res.redirect(TWITTER_SUCCESS_REDIRECT));
   } catch (e) {
     return res.status(500).send(`Twitter callback error: ${e.message}`);
   }
 });
-
-async function ensureXToken(req) {
-  const token = req.session.x_access_token;
-  if (!token) {
-    const err = new Error("Not logged in to X/Twitter. Hit /api/twitter/login first.");
-    err.status = 401;
-    throw err;
-  }
-  return token;
-}
 
 // Get logged-in user
 app.get("/api/twitter/me", async (req, res) => {
@@ -236,6 +273,7 @@ app.post("/api/twitter/tweet", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Inidan Finder API running on port ${PORT}`);
 });
+
 
 
 
